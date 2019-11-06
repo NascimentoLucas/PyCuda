@@ -10,7 +10,6 @@ a = numpy.random.randn(4, 4)
 # baixando a precisão do double
 a = a.astype(numpy.float32)
 
-
 # alocando memória no device
 a_gpu = cuda.mem_alloc(a.nbytes)
 
@@ -25,7 +24,7 @@ mod = SourceModule("""
 __device__ float doubleValue(float value){
     return value * 2;// tire o 2 e veja que o erro será na linha 6
 } 
-    
+
 __global__ void doublify(float *a)
 {
     int idx = threadIdx.x + threadIdx.y*4;
@@ -40,7 +39,11 @@ func = mod.get_function("doublify")
 
 # a chamada para o kernel ser executado é feito abaixo,
 # também é declarado o número de bloco e threads por bloco
-func(a_gpu, block=(4, 4, 1))
+# além disso as dimensões do grid
+grid = (1, 1)
+block = (4, 4, 1)
+func.prepare("P")
+func.prepared_call(grid, block, a_gpu)
 
 a_doubled = numpy.empty_like(a)
 # copiando de volta a matriz

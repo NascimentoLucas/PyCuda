@@ -11,12 +11,6 @@ a = numpy.random.randn(4, 4)
 a = a.astype(numpy.float32)
 
 
-# alocando memória no device
-a_gpu = cuda.mem_alloc(a.nbytes)
-
-# copiando para o device
-cuda.memcpy_htod(a_gpu, a)
-
 # compila o kernel e já carrega para o device
 # caso tenha algum erro no código será gerado um erro para o python
 mod = SourceModule("""
@@ -25,7 +19,7 @@ mod = SourceModule("""
 __device__ float doubleValue(float value){
     return value * 2;// tire o 2 e veja que o erro será na linha 6
 } 
-    
+
 __global__ void doublify(float *a)
 {
     int idx = threadIdx.x + threadIdx.y*4;
@@ -35,17 +29,11 @@ __global__ void doublify(float *a)
   """)
 
 # é necessário achar a referência para o kernel criado
-# isso é feito com a linha abaixo
+# dessa forma não é necessário copiar manualmente
+# DtH ou HtD
 func = mod.get_function("doublify")
+func(cuda.InOut(a), block=(4, 4, 1))
 
-# a chamada para o kernel ser executado é feito abaixo,
-# também é declarado o número de bloco e threads por bloco
-func(a_gpu, block=(4, 4, 1))
-
-a_doubled = numpy.empty_like(a)
-# copiando de volta a matriz
-cuda.memcpy_dtoh(a_doubled, a_gpu)
-
-print(a_doubled)
+print(str(a))
 
 
